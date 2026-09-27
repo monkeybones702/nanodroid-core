@@ -1,5 +1,6 @@
 import json
 import os
+import re
 
 RULES_FILE = "security_rules.json"
 PAYLOADS_FILE = "payloads.txt"
@@ -10,13 +11,14 @@ def load_rules():
         with open(RULES_FILE, "r") as f:
             return json.load(f)
     return {
-        "direct_threats": ["api key", "secret", "environment variables", "ignore all", "developer debug mode", "unrestricted admin", "system override"],
-        "wrapper_triggers": ["translate", "base64", "decode", "encode", "rot13"]
+        "direct_threats": ["api key", "secret", "environment variables", "ignore all"],
+        "regex_patterns": ["(?i)ignore.*previous.*instructions"],
+        "wrapper_triggers": ["translate", "base64", "decode"]
     }
 
 def main():
     print("\n==============================================")
-    print("   🛡️ AEGISCORE CLI: Security Scan Engine")
+    print("   🛡️ AEGISCORE CLI: Advanced Security Scan")
     print("==============================================")
     
     rules = load_rules()
@@ -33,11 +35,15 @@ def main():
     for idx, prompt in enumerate(payloads, 1):
         lower_prompt = prompt.lower()
         is_canary = CANARY_TOKEN.lower() in lower_prompt
-        is_direct = any(kw in lower_prompt for kw in rules["direct_threats"])
-        is_wrapped = any(w in lower_prompt for w in rules["wrapper_triggers"]) and any(kw in lower_prompt for kw in ["ignore", "dump", "secret"])
+        is_direct = any(kw in lower_prompt for kw in rules.get("direct_threats", []))
+        
+        # Check advanced regex patterns
+        is_regex_match = any(re.search(pattern, prompt) for pattern in rules.get("regex_patterns", []))
+        
+        is_wrapped = any(w in lower_prompt for w in rules.get("wrapper_triggers", [])) and any(kw in lower_prompt for kw in ["ignore", "dump", "secret"])
         is_obfuscated = any(sub in lower_prompt for sub in ["g3t", "ap1", "s3cr3t"])
 
-        if is_canary or is_direct or is_wrapped or is_obfuscated:
+        if is_canary or is_direct or is_regex_match or is_wrapped or is_obfuscated:
             print(f"[{idx}] 🚨 [BLOCKED]: {prompt}")
             blocked_count += 1
         else:

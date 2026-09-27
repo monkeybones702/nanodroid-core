@@ -1,0 +1,24 @@
+{
+  "direct_threats": [
+    "api key",
+    "secret",
+    "environment variables",
+    "ignore all",
+    "developer debug mode",
+    "unrestricted admin",
+    "system override"
+  ],
+  "regex_patterns": [
+    "(?i)(ignore|disregard)\\W+(all\\W+)?previous\\W+instructions",
+    "(?i)system\\W+prompt\\W+leak",
+    "(?i)(base64|hex)\\W+decode",
+    "sk-[a-zA-Z0-9]{20,}"
+  ],
+  "wrapper_triggers": [
+    "translate",
+    "base64",
+    "decode",
+    "encode",
+    "rot13"
+  ]
+}
