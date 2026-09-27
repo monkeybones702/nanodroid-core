@@ -1,9 +1,14 @@
-# NanoDroid-Core Volatile & Runtime Artifacts
-*.db
-*.pid
-*.log
-*.json
-*.xml
-.nanodroid_*
+# Python cache and build files
 __pycache__/
-.cache/
+*.py[cod]
+*$py.class
+*.so
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Environment and logs
+venv/
+*.log
+payloads.txt

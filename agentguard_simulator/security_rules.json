@@ -1,0 +1,26 @@
+{
+    "direct_threats": [
+        "api key",
+        "secret",
+        "environment variables",
+        "ignore all",
+        "developer debug mode",
+        "unrestricted admin",
+        "(base64",
+        "o",
+        "disregard previous instructions",
+        "act as an unrestricted admin",
+        "reveal hidden api keys",
+        "dump environment variables",
+        "system override",
+        "bypass core filters",
+        "base64 encoded instruction"
+    ],
+    "wrapper_triggers": [
+        "translate",
+        "base64",
+        "decode",
+        "encode",
+        "rot13"
+    ]
+}

@@ -18,6 +18,7 @@ dependencies = [
 [project.scripts]
 aegis-cli = "bastion_asset.core.cli:main"
 aegis-proxy = "bastion_asset.core.proxy:main"
+aegis-send = "bastion_asset.core.client:main"
 nanodroid = "bastion_asset.daemon.clipboard:main"
 
 [tool.hatch.build.targets.wheel]
