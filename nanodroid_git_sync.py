@@ -4,11 +4,12 @@ import sys
 import subprocess
 
 # ==============================================================================
-# NanoDroid-Core Git Repository Sync & Release Utility (v17.2.0)
-# Target: Samsung Galaxy A16 (ARM64) | Robust Identity & Remote Push
+# NanoDroid-Core Git Repository Sync & Creation Utility (v17.3.0)
+# Target: Samsung Galaxy A16 (ARM64) | Automated GitHub CLI Provisioning
 # ==============================================================================
 
 HOME_DIR = os.path.expanduser("~")
+REPO_NAME = "nanodroid-core"
 
 GITIGNORE_CONTENT = """# NanoDroid-Core Volatile & Runtime Artifacts
 *.db
@@ -35,75 +36,79 @@ MANAGED_FILES = [
     "nanodroid_git_sync.py"
 ]
 
-def run_git(args):
-    res = subprocess.run(["git"] + args, cwd=HOME_DIR, capture_output=True, text=True)
+def run_cmd(args, cwd=HOME_DIR):
+    res = subprocess.run(args, cwd=cwd, capture_output=True, text=True)
     return res.returncode, res.stdout.strip(), res.stderr.strip()
 
-def initialize_and_sync(repo_url=None):
-    print("[*] Checking Git environment...")
-    code, out, err = run_git(["--version"])
-    if code != 0:
-        print("[-] Git is not installed. Please run: pkg install git")
+def setup_repository():
+    print("[*] Initializing NanoDroid-Core Git environment...")
+    
+    # Ensure git and gh are available
+    if run_cmd(["git", "--version"])[0] != 0:
+        print("[-] Git is missing. Run: pkg install git")
+        return False
+        
+    if run_cmd(["gh", "--version"])[0] != 0:
+        print("[-] GitHub CLI (gh) is missing. Run: pkg install gh")
         return False
 
     git_dir = os.path.join(HOME_DIR, ".git")
     if not os.path.exists(git_dir):
-        print("[+] Initializing local Git repository...")
-        run_git(["init"])
+        run_cmd(["git", "init"])
 
-    # Always enforce local repository identity configuration
-    run_git(["config", "user.name", "NanoDroid-Architect"])
-    run_git(["config", "user.email", "nanodroid@apexarchitect.local"])
-    print("[+] Git author identity configured.")
+    # Enforce local identity
+    run_cmd(["git", "config", "user.name", "NanoDroid-Architect"])
+    run_cmd(["git", "config", "user.email", "nanodroid@apexarchitect.local"])
 
     # Write .gitignore
-    gitignore_path = os.path.join(HOME_DIR, ".gitignore")
-    with open(gitignore_path, "w") as f:
+    with open(os.path.join(HOME_DIR, ".gitignore"), "w") as f:
         f.write(GITIGNORE_CONTENT)
-    print("[+] Updated .gitignore for runtime isolation.")
+    print("[+] .gitignore configured for runtime isolation.")
 
-    # Add managed files
-    print("[+] Staging NanoDroid-Core automation modules...")
+    # Stage files
+    print("[+] Staging NanoDroid-Core automation scripts...")
     for filename in MANAGED_FILES:
-        filepath = os.path.join(HOME_DIR, filename)
-        if os.path.exists(filepath):
-            run_git(["add", filename])
+        if os.path.exists(os.path.join(HOME_DIR, filename)):
+            run_cmd(["git", "add", filename])
             print(f"    Staged: {filename}")
-        else:
-            print(f"    Skipped (not found): {filename}")
+    run_cmd(["git", "add", ".gitignore"])
 
-    run_git(["add", ".gitignore"])
+    # Commit
+    code, out, err = run_cmd(["git", "commit", "-m", "NanoDroid-Core v17.3.0: Full Ecosystem Release"])
+    if code == 0 or "nothing to commit" in out:
+        print("[+] Local commit successful.")
 
-    # Commit changes
-    commit_msg = "NanoDroid-Core v17.0.0: Intent-Aware Agent & Full Ecosystem Release"
-    code, out, err = run_git(["commit", "-m", commit_msg])
-    if code == 0 or "nothing to commit" in out or "nothing to commit" in err:
-        print(f"[+] Commit status: Success / Up to date.")
-    else:
-        print(f"[-] Commit notice: {out} {err}")
+    # Check GitHub CLI authentication status
+    auth_code, _, _ = run_cmd(["gh", "auth", "status"])
+    if auth_code != 0:
+        print("\n[!] Authentication Required: Please authenticate GitHub CLI.")
+        print("Run the following command first, then re-run sync:")
+        print("    gh auth login\n")
+        return False
 
-    # Handle remote configuration if URL provided
-    if repo_url:
-        print(f"[*] Configuring remote origin: {repo_url}")
-        run_git(["remote", "remove", "origin"])
-        code, out, err = run_git(["remote", "add", "origin", repo_url])
-        if code != 0:
-            print(f"[-] Failed to set remote origin: {err}")
-            return False
+    # Create remote repo and push using GitHub CLI
+    print(f"[*] Provisioning remote repository '{REPO_NAME}' on GitHub...")
+    # Try creating repo (if it already exists, gh will report and we proceed to push)
+    run_cmd(["gh", "repo", "create", REPO_NAME, "--public", "--description", "NanoDroid-Core Automation Suite for Samsung Galaxy A16 (ARM64)"])
 
-        print("[*] Pushing main branch to remote GitHub repository...")
-        run_git(["branch", "-M", "main"])
-        p_code, p_out, p_err = run_git(["push", "-u", "origin", "main"])
-        if p_code == 0:
-            print("[+] Successfully pushed NanoDroid-Core to GitHub!")
-            return True
-        else:
-            print(f"[-] Push failed. Please verify your GitHub credentials or Personal Access Token:\n{p_err}")
-            return False
-    else:
-        print("[+] Local Git synchronization complete. Run with remote URL to push.")
+    print("[*] Linking remote origin and pushing main branch...")
+    run_cmd(["git", "branch", "-M", "main"])
+    
+    # Set remote and push
+    username_res = run_cmd(["gh", "api", "user", "--jq", ".login"])
+    gh_user = username_res[1] if username_res[0] == 0 else "monkeybones702"
+    remote_url = f"https://github.com/{gh_user}/{REPO_NAME}.git"
+    
+    run_cmd(["git", "remote", "remove", "origin"])
+    run_cmd(["git", "remote", "add", "origin", remote_url])
+    
+    push_code, push_out, push_err = run_cmd(["git", "push", "-u", "origin", "main"])
+    if push_code == 0:
+        print(f"\n[+] SUCCESS! Repository created and pushed to: {remote_url}")
         return True
+    else:
+        print(f"[-] Push output: {push_out}\n[-] Error: {push_err}")
+        return False
 
 if __name__ == "__main__":
-    url = sys.argv[1] if len(sys.argv) > 1 else None
-    initialize_and_sync(url)
+    setup_repository()
