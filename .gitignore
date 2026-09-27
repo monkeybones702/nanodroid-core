@@ -1,0 +1,9 @@
+# NanoDroid-Core Volatile & Runtime Artifacts
+*.db
+*.pid
+*.log
+*.json
+*.xml
+.nanodroid_*
+__pycache__/
+.cache/
